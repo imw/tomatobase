@@ -23,14 +23,6 @@ use microbit::hal::{
  };
 use rtt_target::rtt_init_print;
 
-/*
-static RTC: Mutex<RefCell<Option<Rtc<pac::RTC0>>>> = Mutex::new(RefCell::new(None));
-static SPEAKER: Mutex<RefCell<Option<pwm::Pwm<pac::PWM0>>>> = Mutex::new(RefCell::new(None));
-static ADC: Mutex<RefCell<Option<Saadc>>> = Mutex::new(RefCell::new(None));
-static PIN2: Mutex<RefCell<Option<gpio::p0::P0_02<gpio::Input<gpio::PullUp>>>>> = Mutex::new(RefCell::new(None));
-static PIN3: Mutex<RefCell<Option<gpio::p0::P0_03<gpio::Input<gpio::PullUp>>>>> = Mutex::new(RefCell::new(None));
-*/
-
 const STOP_FREQUENCY: u32 = 500;
 
 #[entry]
@@ -80,48 +72,13 @@ fn main() -> ! {
     let max_duty = speaker.max_duty();
     speaker.set_duty_on_common(max_duty / 2);
 
-    /*
-    cortex_m::interrupt::free(move |cs| {
-        // NB: The LF CLK pin is used by the speaker
-        let _clocks = Clocks::new(b.CLOCK)
-            .enable_ext_hfosc()
-            .set_lfclk_src_synth()
-            .start_lfclk();
-
-        *ADC.borrow(cs).borrow_mut() = Some(adc);
-
-        //TODO -- what is the actual type for the refcell?
-        *PIN2.borrow(cs).borrow_mut() = Some(adc_pin1);
-        *PIN3.borrow(cs).borrow_mut() = Some(adc_pin2);
-
-        let mut rtc = Rtc::new(b.RTC0, 511).unwrap();
-        rtc.enable_counter();
-        rtc.enable_interrupt(RtcInterrupt::Tick, Some(&mut b.NVIC));
-        rtc.enable_event(RtcInterrupt::Tick);
-
-        *RTC.borrow(cs).borrow_mut() = Some(rtc);
-
-
-        // Use the PWM peripheral to generate a waveform for the speaker
-        *SPEAKER.borrow(cs).borrow_mut() = Some(speaker);
-
-        // Configure RTC interrupt
-        unsafe {
-            pac::NVIC::unmask(pac::Interrupt::RTC0);
-        }
-        pac::NVIC::unpend(pac::Interrupt::RTC0);
-    });        
-
-        */
 
     let mut note: u32 = 100;
-//    let mut last_low = timer.read();
     let max_duty = speaker.max_duty();
     let alarm_period = 1_000u32;
     let mut alarm;
     timer.start(alarm_period);
     loop {
- //       let time = timer.read();
         let pressure1 = adc.read(&mut pin2).unwrap();
         let q1 = pressure1 / 3000;
         let pressure2 = adc.read(&mut pin3).unwrap();
@@ -165,69 +122,5 @@ fn main() -> ! {
             speaker.disable();
             note = 100;
         }
-        /*
-
-        for i in 0..5 {
-            let mut row = leds[i];
-            if q1 > 0 { 
-                row[0] = 1;
-                q1 = q1 - 1;
-            } else {
-                row[0] = 0;
-            }
-            if q2 > 0 { 
-                row[4] = 1;
-                q2 = q2 - 1;
-            } else {
-                row[4] = 0;
-            }
-            leds[i] = row;
-        }
-        
-        display.show(&mut timer, leds, 100);
-        */
     }
 }
-
-
-/*
-// RTC interrupt, exectued for each RTC tick
-#[interrupt]
-fn RTC0() {
-    /* Enter critical section */
-    cortex_m::interrupt::free(|cs| {
-        /* Borrow devices */
-        if let (Some(speaker), Some(rtc), Some(adc), Some(pin2), Some(pin3)) = (
-            SPEAKER.borrow(cs).borrow().as_ref(),
-            RTC.borrow(cs).borrow().as_ref(),
-            ADC.borrow(cs).borrow().as_ref(),
-            PIN2.borrow(cs).borrow().as_ref(),
-            PIN3.borrow(cs).borrow().as_ref(),
-        ) {
-            let _pressure1 = adc.read(&mut pin2).unwrap();
-            let _pressure2 = adc.read(&mut pin3).unwrap();
-            if *FREQUENCY < STOP_FREQUENCY {
-                // Configure the new frequency, must not be zero.
-                // Will change the max_duty
-                speaker.set_period(Hertz(*FREQUENCY));
-            } else {
-                // Continue at frequency
-                speaker.set_period(Hertz(STOP_FREQUENCY));
-            }
-            // Restart the PWM at 50% duty cycle
-            let max_duty = speaker.max_duty();
-            speaker.set_duty_on_common(max_duty / 2);
-            if *FREQUENCY >= STOP_FREQUENCY + 250 {
-                defmt::info!("Fin");
-                // Stop speaker and RTC
-                speaker.disable();
-                rtc.disable_counter();
-            };
-            // Clear the RTC interrupt
-            rtc.reset_event(RtcInterrupt::Tick);
-        }
-    });
-    // Increase the frequency
-    *FREQUENCY += 1;
-}
-*/
