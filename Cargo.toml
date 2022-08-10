@@ -10,7 +10,22 @@ cortex-m = "0.7.3"
 cortex-m-rt = "0.7.0"
 panic-halt = "0.2.0"
 rtt-target = { version = "0.3.1", features = ["cortex-m"] }
+defmt-rtt = "0.3.2"
+defmt = "0.3.2"
 #panic-rtt-target = { version = "0.1.2", features = ["cortex-m"] }
+
+[features]
+default = [
+  "defmt-default",
+]
+
+# do NOT modify these features
+defmt-default = []
+defmt-trace = []
+defmt-debug = []
+defmt-info = []
+defmt-warn = []
+defmt-error = []
 
 [profile.release]
 codegen-units = 1
