@@ -50,13 +50,14 @@ fn main() -> ! {
     let mut pin3 = b.pins.p0_03;
 
 
-    let rtc = Rtc::new(b.RTC0, 511).unwrap();
+    // tick frequency is 32_768 / (prescaler + 1)
+    // 3276 = 100ms ticks
+    let rtc = Rtc::new(b.RTC0, 3276).unwrap();
     rtc.enable_counter();
-
-
 
     let mut speaker_pin = b.speaker_pin.into_push_pull_output(gpio::Level::High);
     let _ = speaker_pin.set_low();
+
 
     let speaker = pwm::Pwm::new(b.PWM0);
     speaker
@@ -76,15 +77,11 @@ fn main() -> ! {
         .set_seq_refresh(pwm::Seq::Seq0, 0)
         .set_seq_end_delay(pwm::Seq::Seq0, 0);
 
-    // Configure 50% duty cycle
-//    let max_duty = speaker.max_duty();
- //   speaker.set_duty_on_common(max_duty / 2);
-
     let mut note: u32 = 100;
     let max_frequency: u32 = 500;
     let mut last_stand = rtc.get_counter();
-    let max_duty = speaker.max_duty();
-    let alarm_period = 300u32;
+    //Clock is 10Hz, period is in ticks
+    let alarm_period = 100u32;
     let mut alarm;
 
     loop {
@@ -122,10 +119,10 @@ fn main() -> ! {
             speaker.set_duty_on_common(max_duty / 2);
 
             if note >= max_frequency + 250 {
-                defmt::info!("Fin");
+                note = 100;
             };
             // Increase the frequency
-            note += 5;
+            note += 10;
         } else {
             display.show(&mut timer, leds_off, 200);
             note = 100;
