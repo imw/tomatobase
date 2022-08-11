@@ -81,7 +81,8 @@ fn main() -> ! {
     let max_frequency: u32 = 500;
     let mut last_stand = rtc.get_counter();
     //Clock is 10Hz, period is in ticks
-    let alarm_period = 100u32;
+    // 12k ticks is 20 minutes
+    let alarm_period = 12_000u32;
     let mut alarm;
 
     loop {
