@@ -38,7 +38,8 @@ fn main() -> ! {
     rtt_init_print!();
     let mut b = Board::take().unwrap();
 
-    let mut timer = Timer::new(b.TIMER0);
+    let mut timer0 = Timer::new(b.TIMER0);
+    let mut timer1 = Timer::new(b.TIMER1);
 
 
     let mut display = Display::new(b.display_pins);
@@ -68,9 +69,7 @@ fn main() -> ! {
         // Configure for up and down counter mode
         .set_counter_mode(pwm::CounterMode::UpAndDown)
         // Set maximum duty cycle
-        .set_max_duty(32767)
-        // enable PWM
-        .enable();
+        .set_max_duty(32767);
 
     speaker
         .set_seq_refresh(pwm::Seq::Seq0, 0)
@@ -117,32 +116,41 @@ fn main() -> ! {
     let mut note: u32 = 100;
 //    let mut last_low = timer.read();
     let max_duty = speaker.max_duty();
-    let alarm_period = 1_000u32;
-    let mut alarm;
-    timer.start(alarm_period);
+    let alarm_period = 100_000_000u32;
+    let mut alarm = false;
+    timer0.start(alarm_period);
     loop {
- //       let time = timer.read();
+//        let time = timer0.read();
         let pressure1 = adc.read(&mut pin2).unwrap();
         let q1 = pressure1 / 3000;
         let pressure2 = adc.read(&mut pin3).unwrap();
         let q2 = pressure2 / 3000;
 
         
-        let expired = timer.wait();
+        let expired = timer0.wait();
         let sat_upon = q1 > 0 || q2 > 0;
+        let mut led_indicator = leds.clone();
         match expired {
-            Ok(_) => {
+            Err(_) => {
                 if sat_upon {
-                    timer.start(alarm_period);
+                    led_indicator[0][0] = 1;
+                    display.show(&mut timer1, led_indicator, 500);
+                    timer0.start(alarm_period);
                     alarm = false;
                 } else {
+                    led_indicator[0][2] = 1;
+                    display.show(&mut timer1, led_indicator, 500);
                     alarm = true;
                 }
             }
-            Err(_) => { continue ; }
+            Ok(_) => { 
+                led_indicator[0][4] = 1;
+                display.show(&mut timer1, led_indicator, 500);
+            }
         }
 
         if alarm {
+            speaker.enable();
             if note < STOP_FREQUENCY {
                 // Configure the new frequency, must not be zero.
                 // Will change the max_duty
