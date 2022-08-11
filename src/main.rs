@@ -19,8 +19,6 @@ use microbit::hal::{
  };
 use rtt_target::rtt_init_print;
 
-const STOP_FREQUENCY: u32 = 500;
-
 #[entry]
 fn main() -> ! {
     rtt_init_print!();
@@ -71,20 +69,22 @@ fn main() -> ! {
         // Configure for up and down counter mode
         .set_counter_mode(pwm::CounterMode::UpAndDown)
         // Set maximum duty cycle
-        .set_max_duty(32767);
+        .set_max_duty(32767)
+        .enable();
 
     speaker
         .set_seq_refresh(pwm::Seq::Seq0, 0)
         .set_seq_end_delay(pwm::Seq::Seq0, 0);
 
     // Configure 50% duty cycle
-    let max_duty = speaker.max_duty();
-    speaker.set_duty_on_common(max_duty / 2);
+//    let max_duty = speaker.max_duty();
+ //   speaker.set_duty_on_common(max_duty / 2);
 
     let mut note: u32 = 100;
+    let max_frequency: u32 = 500;
     let mut last_stand = rtc.get_counter();
     let max_duty = speaker.max_duty();
-    let alarm_period = 1_000u32;
+    let alarm_period = 300u32;
     let mut alarm;
 
     loop {
@@ -109,28 +109,27 @@ fn main() -> ! {
         if alarm {
             display.show(&mut timer, leds_on, 200);
             speaker.enable();
-            if note < STOP_FREQUENCY {
+            if note < max_frequency {
                 // Configure the new frequency, must not be zero.
                 // Will change the max_duty
                 speaker.set_period(Hertz(note));
             } else {
                 // Continue at frequency
-                speaker.set_period(Hertz(STOP_FREQUENCY));
+                speaker.set_period(Hertz(max_frequency));
             }
             // Restart the PWM at 50% duty cycle
+            let max_duty = speaker.max_duty();
             speaker.set_duty_on_common(max_duty / 2);
 
-            if note >= STOP_FREQUENCY + 250 {
+            if note >= max_frequency + 250 {
                 defmt::info!("Fin");
-                // Stop speaker and RTC
-                speaker.disable();
             };
             // Increase the frequency
-            note += 25;
+            note += 5;
         } else {
             display.show(&mut timer, leds_off, 200);
-            speaker.disable();
             note = 100;
+            speaker.disable();
         }
 
     }
